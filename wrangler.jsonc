@@ -26,7 +26,7 @@
     {
       "binding": "DB",
       "database_name": "agent-market-sandbox",
-      "database_id": "00000000-0000-4000-8000-000000000001",
+      "database_id": "51d0764b-d79d-419e-b77d-0574daa98c71",
       "migrations_dir": "migrations"
     }
   ],
