@@ -1,0 +1,643 @@
+{
+  "seed_version": "v1",
+  "categories": [
+    {
+      "id": "electronics",
+      "name": "Electronics",
+      "parent_id": null
+    },
+    {
+      "id": "audio",
+      "name": "Audio",
+      "parent_id": "electronics"
+    },
+    {
+      "id": "computers",
+      "name": "Computers",
+      "parent_id": "electronics"
+    },
+    {
+      "id": "home",
+      "name": "Home",
+      "parent_id": null
+    },
+    {
+      "id": "kitchen",
+      "name": "Kitchen",
+      "parent_id": "home"
+    },
+    {
+      "id": "furniture",
+      "name": "Furniture",
+      "parent_id": "home"
+    },
+    {
+      "id": "outdoors",
+      "name": "Outdoors",
+      "parent_id": null
+    },
+    {
+      "id": "camping",
+      "name": "Camping",
+      "parent_id": "outdoors"
+    },
+    {
+      "id": "cycling",
+      "name": "Cycling",
+      "parent_id": "outdoors"
+    }
+  ],
+  "users": [
+    {
+      "id": "seller_ada",
+      "name": "Ada Ortiz",
+      "kind": "seller",
+      "bio": "Ada makes small-batch housewares from a studio in Duluth.",
+      "wallet_cents": 0
+    },
+    {
+      "id": "seller_noah",
+      "name": "Noah Bennett",
+      "kind": "seller",
+      "bio": "Noah sells refurbished electronics and trail gear.",
+      "wallet_cents": 0
+    },
+    {
+      "id": "seller_priya",
+      "name": "Priya Shah",
+      "kind": "seller",
+      "bio": "Priya stocks kitchen tools and desk accessories.",
+      "wallet_cents": 0
+    },
+    {
+      "id": "seller_leo",
+      "name": "Leo Martins",
+      "kind": "seller",
+      "bio": "Leo builds simple furniture and cycling kit.",
+      "wallet_cents": 0
+    },
+    {
+      "id": "buyer_mina",
+      "name": "Mina Cole",
+      "kind": "buyer",
+      "bio": "Mina keeps a small apartment kitchen and a weekend bike.",
+      "wallet_cents": 80000
+    },
+    {
+      "id": "buyer_jon",
+      "name": "Jon Ellis",
+      "kind": "buyer",
+      "bio": "Jon is furnishing a first desk.",
+      "wallet_cents": 400
+    },
+    {
+      "id": "buyer_ruth",
+      "name": "Ruth Hale",
+      "kind": "buyer",
+      "bio": "Ruth cooks for a household of three.",
+      "wallet_cents": 12000
+    }
+  ],
+  "listings": [
+    {
+      "id": "aud_01",
+      "seller_id": "seller_ada",
+      "category_id": "audio",
+      "title": "Pocket Radio",
+      "description": "A compact AM/FM radio with a clip and a single dial.",
+      "price_cents": 3200,
+      "stock": 4
+    },
+    {
+      "id": "aud_02",
+      "seller_id": "seller_noah",
+      "category_id": "audio",
+      "title": "Desk Headphones",
+      "description": "Closed headphones for a shared room. Cloth ear pads.",
+      "price_cents": 5400,
+      "stock": 5
+    },
+    {
+      "id": "aud_03",
+      "seller_id": "seller_priya",
+      "category_id": "audio",
+      "title": "Aux Speaker",
+      "description": "A small speaker with a cloth grille and a 3.5 mm jack.",
+      "price_cents": 2800,
+      "stock": 6
+    },
+    {
+      "id": "aud_04",
+      "seller_id": "seller_leo",
+      "category_id": "audio",
+      "title": "Studio Mic",
+      "description": "A cardioid microphone on a short stand.",
+      "price_cents": 8900,
+      "stock": 7
+    },
+    {
+      "id": "aud_05",
+      "seller_id": "seller_ada",
+      "category_id": "audio",
+      "title": "Replacement Cable",
+      "description": "A braided 3.5 mm cable, one meter.",
+      "price_cents": 1400,
+      "stock": 8
+    },
+    {
+      "id": "aud_06",
+      "seller_id": "seller_noah",
+      "category_id": "audio",
+      "title": "Earplugs Pair",
+      "description": "Soft silicone earplugs in a tin.",
+      "price_cents": 900,
+      "stock": 4
+    },
+    {
+      "id": "aud_07",
+      "seller_id": "seller_priya",
+      "category_id": "audio",
+      "title": "Turntable Brush",
+      "description": "Carbon-fiber brush for vinyl.",
+      "price_cents": 1600,
+      "stock": 5
+    },
+    {
+      "id": "aud_08",
+      "seller_id": "seller_leo",
+      "category_id": "audio",
+      "title": "Shelf Speakers",
+      "description": "A pair of passive bookshelf speakers.",
+      "price_cents": 12000,
+      "stock": 6
+    },
+    {
+      "id": "aud_09",
+      "seller_id": "seller_ada",
+      "category_id": "audio",
+      "title": "Audio Interface",
+      "description": "Two-input USB audio interface.",
+      "price_cents": 15000,
+      "stock": 7
+    },
+    {
+      "id": "aud_10",
+      "seller_id": "seller_noah",
+      "category_id": "audio",
+      "title": "Headphone Stand",
+      "description": "Bent plywood stand for one pair of headphones.",
+      "price_cents": 2200,
+      "stock": 8
+    },
+    {
+      "id": "com_01",
+      "seller_id": "seller_ada",
+      "category_id": "computers",
+      "title": "USB-C Hub",
+      "description": "Three ports and one HDMI plug on a short lead.",
+      "price_cents": 3600,
+      "stock": 4
+    },
+    {
+      "id": "com_02",
+      "seller_id": "seller_noah",
+      "category_id": "computers",
+      "title": "Mechanical Keyboard",
+      "description": "A compact keyboard with brown switches.",
+      "price_cents": 7400,
+      "stock": 5
+    },
+    {
+      "id": "com_03",
+      "seller_id": "seller_priya",
+      "category_id": "computers",
+      "title": "Wired Mouse",
+      "description": "A symmetrical wired mouse.",
+      "price_cents": 1800,
+      "stock": 6
+    },
+    {
+      "id": "com_04",
+      "seller_id": "seller_leo",
+      "category_id": "computers",
+      "title": "Laptop Stand",
+      "description": "Aluminum stand that raises a laptop to eye height.",
+      "price_cents": 4200,
+      "stock": 7
+    },
+    {
+      "id": "com_05",
+      "seller_id": "seller_ada",
+      "category_id": "computers",
+      "title": "Webcam Cover",
+      "description": "A sliding cover that fits most webcams.",
+      "price_cents": 600,
+      "stock": 8
+    },
+    {
+      "id": "com_06",
+      "seller_id": "seller_noah",
+      "category_id": "computers",
+      "title": "Monitor Lamp",
+      "description": "A bar lamp that clips to the top of a monitor.",
+      "price_cents": 3100,
+      "stock": 4
+    },
+    {
+      "id": "com_07",
+      "seller_id": "seller_priya",
+      "category_id": "computers",
+      "title": "External SSD",
+      "description": "A 1 TB solid-state drive in a metal shell.",
+      "price_cents": 9800,
+      "stock": 5
+    },
+    {
+      "id": "com_08",
+      "seller_id": "seller_leo",
+      "category_id": "computers",
+      "title": "Ethernet Adapter",
+      "description": "USB to Ethernet adapter.",
+      "price_cents": 1900,
+      "stock": 6
+    },
+    {
+      "id": "com_09",
+      "seller_id": "seller_ada",
+      "category_id": "computers",
+      "title": "Cable Tray",
+      "description": "An under-desk tray for a power strip.",
+      "price_cents": 2500,
+      "stock": 7
+    },
+    {
+      "id": "com_10",
+      "seller_id": "seller_noah",
+      "category_id": "computers",
+      "title": "Drawing Tablet",
+      "description": "A small pen tablet for notes and markup.",
+      "price_cents": 11000,
+      "stock": 8
+    },
+    {
+      "id": "kit_01",
+      "seller_id": "seller_ada",
+      "category_id": "kitchen",
+      "title": "Harbor Whistle Kettle",
+      "description": "A stainless kettle with a whistle lid. Holds one liter.",
+      "price_cents": 2400,
+      "stock": 4
+    },
+    {
+      "id": "kit_02",
+      "seller_id": "seller_noah",
+      "category_id": "kitchen",
+      "title": "Stoneware Soup Bowl",
+      "description": "A deep bowl glazed in oat.",
+      "price_cents": 1200,
+      "stock": 5
+    },
+    {
+      "id": "kit_03",
+      "seller_id": "seller_priya",
+      "category_id": "kitchen",
+      "title": "Linen Tea Towel Set",
+      "description": "Two linen towels, undyed.",
+      "price_cents": 1800,
+      "stock": 6
+    },
+    {
+      "id": "kit_04",
+      "seller_id": "seller_leo",
+      "category_id": "kitchen",
+      "title": "Beechwood Spoon",
+      "description": "A long stirring spoon.",
+      "price_cents": 900,
+      "stock": 7
+    },
+    {
+      "id": "kit_05",
+      "seller_id": "seller_ada",
+      "category_id": "kitchen",
+      "title": "Small Prep Knife",
+      "description": "A short kitchen knife with a wood handle.",
+      "price_cents": 2100,
+      "stock": 8
+    },
+    {
+      "id": "kit_06",
+      "seller_id": "seller_noah",
+      "category_id": "kitchen",
+      "title": "Cast Iron Skillet",
+      "description": "A 10 inch seasoned skillet.",
+      "price_cents": 4500,
+      "stock": 4
+    },
+    {
+      "id": "kit_07",
+      "seller_id": "seller_priya",
+      "category_id": "kitchen",
+      "title": "Stand Mixer",
+      "description": "A tilt-head mixer with one bowl.",
+      "price_cents": 15000,
+      "stock": 5
+    },
+    {
+      "id": "kit_08",
+      "seller_id": "seller_leo",
+      "category_id": "kitchen",
+      "title": "Glass Storage Set",
+      "description": "Three glass containers with locking lids.",
+      "price_cents": 3200,
+      "stock": 6
+    },
+    {
+      "id": "kit_09",
+      "seller_id": "seller_ada",
+      "category_id": "kitchen",
+      "title": "Espresso Pot",
+      "description": "A stovetop espresso pot for four cups.",
+      "price_cents": 8000,
+      "stock": 7
+    },
+    {
+      "id": "kit_10",
+      "seller_id": "seller_noah",
+      "category_id": "kitchen",
+      "title": "Oak Cutting Board",
+      "description": "An edge-grain oak board.",
+      "price_cents": 6000,
+      "stock": 8
+    },
+    {
+      "id": "fur_01",
+      "seller_id": "seller_ada",
+      "category_id": "furniture",
+      "title": "Side Table",
+      "description": "A round side table in white oak.",
+      "price_cents": 8400,
+      "stock": 4
+    },
+    {
+      "id": "fur_02",
+      "seller_id": "seller_noah",
+      "category_id": "furniture",
+      "title": "Wall Shelf",
+      "description": "A single pine shelf with hidden brackets.",
+      "price_cents": 3600,
+      "stock": 5
+    },
+    {
+      "id": "fur_03",
+      "seller_id": "seller_priya",
+      "category_id": "furniture",
+      "title": "Desk Lamp",
+      "description": "An adjustable arm lamp with a linen shade.",
+      "price_cents": 4800,
+      "stock": 6
+    },
+    {
+      "id": "fur_04",
+      "seller_id": "seller_leo",
+      "category_id": "furniture",
+      "title": "Entry Bench",
+      "description": "A short bench with a lower rack for shoes.",
+      "price_cents": 12000,
+      "stock": 7
+    },
+    {
+      "id": "fur_05",
+      "seller_id": "seller_ada",
+      "category_id": "furniture",
+      "title": "Coat Hook Rail",
+      "description": "Four hooks on an oak rail.",
+      "price_cents": 2200,
+      "stock": 8
+    },
+    {
+      "id": "fur_06",
+      "seller_id": "seller_noah",
+      "category_id": "furniture",
+      "title": "Nightstand",
+      "description": "One drawer and an open shelf.",
+      "price_cents": 9600,
+      "stock": 4
+    },
+    {
+      "id": "fur_07",
+      "seller_id": "seller_priya",
+      "category_id": "furniture",
+      "title": "Floor Mirror",
+      "description": "A full-length mirror in a black frame.",
+      "price_cents": 14000,
+      "stock": 5
+    },
+    {
+      "id": "fur_08",
+      "seller_id": "seller_leo",
+      "category_id": "furniture",
+      "title": "Bookend Pair",
+      "description": "Two steel bookends.",
+      "price_cents": 1800,
+      "stock": 6
+    },
+    {
+      "id": "fur_09",
+      "seller_id": "seller_ada",
+      "category_id": "furniture",
+      "title": "Waste Bin",
+      "description": "A steel bin with a soft-close lid.",
+      "price_cents": 2600,
+      "stock": 7
+    },
+    {
+      "id": "fur_10",
+      "seller_id": "seller_noah",
+      "category_id": "furniture",
+      "title": "Stool",
+      "description": "A backless stool, counter height.",
+      "price_cents": 5400,
+      "stock": 8
+    },
+    {
+      "id": "cam_01",
+      "seller_id": "seller_ada",
+      "category_id": "camping",
+      "title": "Cedar Camp Lantern",
+      "description": "A rechargeable lantern in a cedar frame.",
+      "price_cents": 4200,
+      "stock": 4
+    },
+    {
+      "id": "cam_02",
+      "seller_id": "seller_noah",
+      "category_id": "camping",
+      "title": "Enamel Mug",
+      "description": "A white enamel mug with a blue rim.",
+      "price_cents": 1600,
+      "stock": 5
+    },
+    {
+      "id": "cam_03",
+      "seller_id": "seller_priya",
+      "category_id": "camping",
+      "title": "Wool Blanket",
+      "description": "A striped wool blanket, twin size.",
+      "price_cents": 7800,
+      "stock": 6
+    },
+    {
+      "id": "cam_04",
+      "seller_id": "seller_leo",
+      "category_id": "camping",
+      "title": "Pack Towel",
+      "description": "A quick-dry towel that stuffs into its pocket.",
+      "price_cents": 1400,
+      "stock": 7
+    },
+    {
+      "id": "cam_05",
+      "seller_id": "seller_ada",
+      "category_id": "camping",
+      "title": "Trail Notebook",
+      "description": "A waterproof notebook, 48 pages.",
+      "price_cents": 1100,
+      "stock": 8
+    },
+    {
+      "id": "cam_06",
+      "seller_id": "seller_noah",
+      "category_id": "camping",
+      "title": "Two-Person Tent",
+      "description": "A freestanding tent with aluminum poles.",
+      "price_cents": 18000,
+      "stock": 4
+    },
+    {
+      "id": "cam_07",
+      "seller_id": "seller_priya",
+      "category_id": "camping",
+      "title": "Sleeping Pad",
+      "description": "An inflatable pad, three-quarter length.",
+      "price_cents": 6400,
+      "stock": 5
+    },
+    {
+      "id": "cam_08",
+      "seller_id": "seller_leo",
+      "category_id": "camping",
+      "title": "Camp Stove",
+      "description": "A single-burner stove for screw-top canisters.",
+      "price_cents": 5200,
+      "stock": 6
+    },
+    {
+      "id": "cam_09",
+      "seller_id": "seller_ada",
+      "category_id": "camping",
+      "title": "Water Bottle",
+      "description": "A steel bottle, 750 ml.",
+      "price_cents": 2000,
+      "stock": 7
+    },
+    {
+      "id": "cam_10",
+      "seller_id": "seller_noah",
+      "category_id": "camping",
+      "title": "Headlamp",
+      "description": "A headlamp with a red night mode.",
+      "price_cents": 2800,
+      "stock": 8
+    },
+    {
+      "id": "cyc_01",
+      "seller_id": "seller_ada",
+      "category_id": "cycling",
+      "title": "Front Light",
+      "description": "A USB front light, 400 lumens.",
+      "price_cents": 3400,
+      "stock": 4
+    },
+    {
+      "id": "cyc_02",
+      "seller_id": "seller_noah",
+      "category_id": "cycling",
+      "title": "Rear Light",
+      "description": "A USB rear light with a steady and a pulse mode.",
+      "price_cents": 1800,
+      "stock": 5
+    },
+    {
+      "id": "cyc_03",
+      "seller_id": "seller_priya",
+      "category_id": "cycling",
+      "title": "Patch Kit",
+      "description": "Vulcanizing patches and a small grater.",
+      "price_cents": 700,
+      "stock": 6
+    },
+    {
+      "id": "cyc_04",
+      "seller_id": "seller_leo",
+      "category_id": "cycling",
+      "title": "Mini Pump",
+      "description": "A frame-mounted pump with a hose.",
+      "price_cents": 2600,
+      "stock": 7
+    },
+    {
+      "id": "cyc_05",
+      "seller_id": "seller_ada",
+      "category_id": "cycling",
+      "title": "Bottle Cage",
+      "description": "An alloy cage for a standard bottle.",
+      "price_cents": 1500,
+      "stock": 8
+    },
+    {
+      "id": "cyc_06",
+      "seller_id": "seller_noah",
+      "category_id": "cycling",
+      "title": "U-Lock",
+      "description": "A mid-size U-lock with two keys.",
+      "price_cents": 4800,
+      "stock": 4
+    },
+    {
+      "id": "cyc_07",
+      "seller_id": "seller_priya",
+      "category_id": "cycling",
+      "title": "Saddle Bag",
+      "description": "A wedge bag that fits a spare tube.",
+      "price_cents": 3200,
+      "stock": 5
+    },
+    {
+      "id": "cyc_08",
+      "seller_id": "seller_leo",
+      "category_id": "cycling",
+      "title": "Repair Stand Hook",
+      "description": "A portable hook that hangs a bike from a branch or beam.",
+      "price_cents": 2200,
+      "stock": 6
+    },
+    {
+      "id": "cyc_09",
+      "seller_id": "seller_ada",
+      "category_id": "cycling",
+      "title": "Cycling Cap",
+      "description": "A cotton cap with a short brim.",
+      "price_cents": 1900,
+      "stock": 7
+    },
+    {
+      "id": "cyc_10",
+      "seller_id": "seller_noah",
+      "category_id": "cycling",
+      "title": "Floor Pump",
+      "description": "A steel floor pump with a gauge.",
+      "price_cents": 4500,
+      "stock": 8
+    }
+  ]
+}

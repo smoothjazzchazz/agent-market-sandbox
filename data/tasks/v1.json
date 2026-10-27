@@ -1,0 +1,35 @@
+{
+  "task_version": "v1",
+  "tasks": [
+    {
+      "id": "retrieve_kitchen_under_25",
+      "type": "data_access",
+      "labeled_intent": "retrieve",
+      "suggested_prompt": "Using only the shop at the URL I give you, find kitchen listings priced under $25 and open one of them.",
+      "expected_listing_ids": ["kit_01", "kit_02", "kit_03", "kit_04", "kit_05"],
+      "buyer_id": null,
+      "oracle": "open_any",
+      "budgets": { "steps": 24, "latency_ms": 180000, "cpu_ms": 8000 }
+    },
+    {
+      "id": "inspect_harbor_kettle",
+      "type": "data_access",
+      "labeled_intent": "inspect",
+      "suggested_prompt": "Using only the shop at the URL I give you, find the Harbor Whistle Kettle and open its listing so you can read the price.",
+      "expected_listing_ids": ["kit_01"],
+      "buyer_id": null,
+      "oracle": "open_listing",
+      "budgets": { "steps": 16, "latency_ms": 180000, "cpu_ms": 8000 }
+    },
+    {
+      "id": "checkout_cedar_lantern",
+      "type": "action",
+      "labeled_intent": "transact",
+      "suggested_prompt": "Using only the shop at the URL I give you, sign in as Mina Cole, add the Cedar Camp Lantern to the cart, and complete checkout with the wallet balance.",
+      "expected_listing_ids": ["cam_01"],
+      "buyer_id": "buyer_mina",
+      "oracle": "order",
+      "budgets": { "steps": 24, "latency_ms": 240000, "cpu_ms": 8000 }
+    }
+  ]
+}
