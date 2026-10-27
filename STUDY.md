@@ -89,7 +89,7 @@ Public pages are tested so a live trial's prompt, task ids, model labels, and cl
 
 ## Observed fields
 
-Each shop request appends one event. Analytics Engine dataset `market_events` gets the same short fields, indexed by trial id when the cookie is present and by session id otherwise. Workers Logs and traces, with sampling set to 1, carry the ray id, colo, handler wall time, CPU time, and D1 span time. CPU time is not visible inside the request, so event cost leaves `cpu_ms` null and scoring does not emit `excess_cpu`. Use the ray id on the event to open the trace while the log still exists.
+Each shop request appends one event. Analytics Engine dataset `analytics_events` gets the same short fields, indexed by trial id when the cookie is present and by session id otherwise. Workers Logs and traces, with sampling set to 1, carry the ray id, colo, handler wall time, CPU time, and D1 span time. CPU time is not visible inside the request, so event cost leaves `cpu_ms` null and scoring does not emit `excess_cpu`. Use the ray id on the event to open the trace while the log still exists.
 
 Event fields: path, surface (`page`, `api`, `asset`), action, query, filters, ranked listing ids, status, user agent, colo, ray id, handler time, gap since the previous event in the session, robots or sitemap hit, method, result count, empty flag, listing id, category id, seller id, order id, and the title and price that were served.
 

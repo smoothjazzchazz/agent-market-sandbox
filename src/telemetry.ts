@@ -104,7 +104,7 @@ export async function recordEvent(c: Context<AppContext>, started: number): Prom
     .run();
 
   try {
-    c.env.ANALYTICS.writeDataPoint({
+    c.env.analytics_engine.writeDataPoint({
       indexes: [trialId ?? sessionId],
       blobs: [
         obs.action,

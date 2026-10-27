@@ -1,6 +1,6 @@
 export type Env = {
   DB: D1Database;
-  ANALYTICS: AnalyticsEngineDataset;
+  analytics_engine: AnalyticsEngineDataset;
   ASSETS: Fetcher;
   CONTROL_TOKEN: string;
 };
