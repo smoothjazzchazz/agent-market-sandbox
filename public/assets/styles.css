@@ -1,0 +1,93 @@
+:root {
+  color: #1c1915;
+  background: #f6f1e8;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+}
+
+body {
+  margin: 0 auto;
+  max-width: 980px;
+  padding: 1.25rem;
+}
+
+a {
+  color: #1f4d3a;
+}
+
+.top, .account, .filters, .quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+}
+
+.brand {
+  font-weight: 700;
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.menu ul {
+  list-style: none;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+}
+
+.menu > ul {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.menu li ul {
+  margin-top: 0.25rem;
+}
+
+.cards, .cart {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.cards {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.cards li, .cart li, form, .warn {
+  background: #fffdf8;
+  border: 1px solid #ddd4c4;
+  padding: 0.75rem 1rem;
+}
+
+.price {
+  font-variant-numeric: tabular-nums;
+}
+
+label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+input, select, button {
+  font: inherit;
+}
+
+button, .cart a, .filters button {
+  background: #1f4d3a;
+  color: #f6f1e8;
+  border: 0;
+  padding: 0.35rem 0.7rem;
+  text-decoration: none;
+}
+
+.empty, .warn {
+  background: #fff4e5;
+}
+
+footer {
+  margin-top: 2rem;
+  color: #5c564c;
+}

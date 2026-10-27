@@ -1,0 +1,39 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "agent-market-sandbox",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-12-10",
+	"upload_source_maps": true,
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1,
+		"logs": {
+			"enabled": true,
+			"head_sampling_rate": 1,
+			"invocation_logs": true
+		},
+		"traces": {
+			"enabled": true,
+			"head_sampling_rate": 1
+		}
+	},
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS",
+		"run_worker_first": true
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "agent-market-sandbox",
+			"database_id": "51d0764b-d79d-419e-b77d-0574daa98c71",
+			"migrations_dir": "migrations"
+		}
+	],
+	"analytics_engine_datasets": [
+		{
+			"binding": "analytics_engine",
+			"dataset": "analytics_events"
+		}
+	]
+}
