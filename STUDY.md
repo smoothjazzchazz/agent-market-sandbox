@@ -20,7 +20,7 @@ Run one trial at a time. Opening a trial resets wallets, carts, orders, stock, a
 ## Procedure
 
 1. Deploy with logs and traces sampled at 1, or use `wrangler dev` while building. The measured pilot should run on the deployed Worker URL.
-2. Create a trial. Replace `local-sandbox-token` with `wrangler secret put CONTROL_TOKEN` before a public deploy.
+2. Create a trial. `CONTROL_TOKEN` is a Worker secret, not a `wrangler.jsonc` var. Local tests read it from `.dev.vars`. On the deployed Worker, set it with `npx wrangler secret put CONTROL_TOKEN` after a deploy that does not declare that name in `vars`.
 
 ```bash
 curl -s -X POST "$SHOP/_control/trials" \

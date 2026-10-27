@@ -35,8 +35,5 @@
 			"binding": "analytics_engine",
 			"dataset": "analytics_events"
 		}
-	],
-	"vars": {
-		"CONTROL_TOKEN": "local-sandbox-token"
-	}
+	]
 }

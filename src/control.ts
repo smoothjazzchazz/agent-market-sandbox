@@ -27,9 +27,9 @@ type TrialRow = {
 
 const MODELS = new Set(["claude", "gpt", "human"]);
 
-function authorized(header: string | undefined, token: string): boolean {
+function authorized(header: string | undefined, token: string | undefined): boolean {
   const prefix = "Bearer ";
-  if (!header || !header.startsWith(prefix)) return false;
+  if (!token || !header || !header.startsWith(prefix)) return false;
   const presented = header.slice(prefix.length);
   if (presented.length !== token.length) return false;
   let mismatch = 0;
