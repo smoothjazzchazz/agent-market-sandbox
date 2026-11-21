@@ -4,6 +4,7 @@ import { registerApi } from "./api";
 import { registerControl } from "./control";
 import type { AppContext } from "./env";
 import { ensureReady } from "./ready";
+import { registerFriction } from "./friction";
 import { registerShop } from "./shop";
 import { recordEvent } from "./telemetry";
 
@@ -52,6 +53,7 @@ app.use("*", async (c, next) => {
 
 registerControl(app);
 registerApi(app);
+registerFriction(app);
 registerShop(app);
 
 app.notFound((c) => {
