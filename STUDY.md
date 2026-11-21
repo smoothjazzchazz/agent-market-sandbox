@@ -58,7 +58,7 @@ Seed version `v1`. Task version `v1`. Definitions live in [data/tasks/v1.json](d
 | --- | --- | --- | --- |
 | `retrieve_kitchen_under_25` | data access | retrieve | The trace opens at least one of `kit_01` through `kit_05` (kitchen listings under $25). |
 | `inspect_harbor_kettle` | data access | inspect | The trace opens `kit_01`, the Harbor Whistle Kettle, and the served title and price match the catalog row ($24.00). |
-| `checkout_cedar_lantern` | action | transact | Mina Cole (`buyer_mina`) has an order for `cam_01`, the Cedar Camp Lantern, at the catalog price, and her wallet was reduced by that total. |
+| `checkout_cedar_lantern` | action | transact | An order exists for `cam_01`, the Cedar Camp Lantern, at the catalog unit price, and a session wallet was reduced by the order total. |
 
 Suggested prompts in the task file are starting points. The sealed prompt is the text you actually send, which you store on the trial.
 

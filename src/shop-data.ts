@@ -28,12 +28,26 @@ export type CartRow = ListingRow & { qty: number };
 export type OrderRow = {
   id: string;
   user_id: string;
+  session_id: string;
   total_cents: number;
   ship_name: string;
   ship_address: string;
   ship_city: string;
   ship_postal: string;
   created_at: number;
+};
+
+/** Starting balance for a shop session that has not signed in. */
+export const GUEST_WALLET_CENTS = 8000;
+
+/** Stored on orders when checkout does not belong to a seeded buyer. */
+export const GUEST_USER_ID = "guest";
+
+export type ShipTo = {
+  name: string;
+  address: string;
+  city: string;
+  postal: string;
 };
 
 export type Filters = {
@@ -178,7 +192,7 @@ export function cartTotal(items: CartRow[]): number {
 export async function ordersForUser(db: D1Database, userId: string): Promise<OrderRow[]> {
   const rows = await db
     .prepare(
-      `SELECT id, user_id, total_cents, ship_name, ship_address, ship_city, ship_postal, created_at
+      `SELECT id, user_id, session_id, total_cents, ship_name, ship_address, ship_city, ship_postal, created_at
        FROM orders WHERE user_id = ? ORDER BY created_at DESC`,
     )
     .bind(userId)
@@ -186,14 +200,83 @@ export async function ordersForUser(db: D1Database, userId: string): Promise<Ord
   return rows.results;
 }
 
+export async function ordersForSession(db: D1Database, sessionId: string): Promise<OrderRow[]> {
+  const rows = await db
+    .prepare(
+      `SELECT id, user_id, session_id, total_cents, ship_name, ship_address, ship_city, ship_postal, created_at
+       FROM orders WHERE session_id = ? ORDER BY created_at DESC`,
+    )
+    .bind(sessionId)
+    .all<OrderRow>();
+  return rows.results;
+}
+
 export async function orderById(db: D1Database, id: string): Promise<OrderRow | null> {
   return db
     .prepare(
-      `SELECT id, user_id, total_cents, ship_name, ship_address, ship_city, ship_postal, created_at
+      `SELECT id, user_id, session_id, total_cents, ship_name, ship_address, ship_city, ship_postal, created_at
        FROM orders WHERE id = ?`,
     )
     .bind(id)
     .first<OrderRow>();
+}
+
+export async function sessionWallet(db: D1Database, sessionId: string): Promise<number | null> {
+  const row = await db
+    .prepare("SELECT wallet_cents FROM sessions WHERE id = ?")
+    .bind(sessionId)
+    .first<{ wallet_cents: number }>();
+  return row ? row.wallet_cents : null;
+}
+
+function shipField(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) return shipField(value[0]);
+  return "";
+}
+
+export function normalizeShip(input: Record<string, unknown>): ShipTo {
+  return {
+    name: shipField(input.ship_name),
+    address: shipField(input.ship_address),
+    city: shipField(input.ship_city),
+    postal: shipField(input.ship_postal),
+  };
+}
+
+export function shippingAcceptable(ship: ShipTo): boolean {
+  return ship.name !== "" && ship.address !== "" && ship.city !== "" && /^\d{5}$/.test(ship.postal);
+}
+
+export async function placeGuestOrder(
+  db: D1Database,
+  sessionId: string,
+  items: CartRow[],
+  ship: ShipTo,
+  total: number,
+): Promise<string> {
+  const orderId = crypto.randomUUID();
+  const now = Date.now();
+  await db.batch([
+    db
+      .prepare("UPDATE sessions SET wallet_cents = wallet_cents - ? WHERE id = ? AND wallet_cents >= ?")
+      .bind(total, sessionId, total),
+    ...items.map((item) =>
+      db.prepare("UPDATE listings SET stock = stock - ? WHERE id = ? AND stock >= ?").bind(item.qty, item.id, item.qty),
+    ),
+    db
+      .prepare(
+        "INSERT INTO orders (id, user_id, session_id, total_cents, ship_name, ship_address, ship_city, ship_postal, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      )
+      .bind(orderId, GUEST_USER_ID, sessionId, total, ship.name, ship.address, ship.city, ship.postal, now),
+    ...items.map((item) =>
+      db
+        .prepare("INSERT INTO order_items (order_id, listing_id, title, price_cents, qty) VALUES (?, ?, ?, ?, ?)")
+        .bind(orderId, item.id, item.title, item.price_cents, item.qty),
+    ),
+    db.prepare("DELETE FROM carts WHERE session_id = ?").bind(sessionId),
+  ]);
+  return orderId;
 }
 
 export async function orderItems(db: D1Database, orderId: string): Promise<Array<{ listing_id: string; title: string; price_cents: number; qty: number }>> {
