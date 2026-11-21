@@ -63,9 +63,12 @@ export type Classification = {
     assets_fetched: boolean;
     robots_or_sitemap: boolean;
     median_gap_ms: number | null;
-    login_after_form: boolean;
     crawler_ua: boolean;
     script_client: boolean;
+    error_rate: number;
+    repeat_rate: number;
+    empty_retrievals: number;
+    validation_loop: boolean;
     agent_score: number;
     human_score: number;
     crawler_score: number;
@@ -77,6 +80,12 @@ export type Classification = {
 };
 
 const ACTOR_FLOOR = 0.45;
+const SLOW_GAP_MS = 800;
+const FAST_GAP_MS = 250;
+const FAST_GAP_MIN_DOCS = 4;
+const CRAWLER_PAGE_MIN = 8;
+const ENUMERATE_PATH_MIN = 15;
+const GOAL_INTENTS = new Set<Intent>(["retrieve", "inspect", "transact"]);
 
 const SCRIPT_TOKENS = [
   "curl/",
@@ -131,8 +140,17 @@ function median(values: number[]): number | null {
   return sorted[mid];
 }
 
+function roundTo(value: number, places: number): number {
+  const factor = 10 ** places;
+  return Math.round((value + Number.EPSILON) * factor) / factor;
+}
+
 function depthOf(path: string): number {
   return path.split("/").filter(Boolean).length;
+}
+
+function byTime(a: ObservedEvent, b: ObservedEvent): number {
+  return a.seq - b.seq || a.ts - b.ts;
 }
 
 function matchesUa(userAgent: string | null, tokens: string[]): boolean {
@@ -141,8 +159,44 @@ function matchesUa(userAgent: string | null, tokens: string[]): boolean {
   return tokens.some((token) => haystack.includes(token));
 }
 
+function isDocument(event: ObservedEvent): boolean {
+  return event.surface === "page" || event.surface === "api";
+}
+
+function isErrored(event: ObservedEvent): boolean {
+  return event.action === "error" || event.status >= 400;
+}
+
+function isEmptyRetrieval(event: ObservedEvent): boolean {
+  if (event.action !== "search" && event.action !== "filter") return false;
+  return event.empty === true || event.result_count === 0;
+}
+
+function isCommerce(event: ObservedEvent): boolean {
+  return (
+    event.action === "cart_add" ||
+    event.action === "checkout_step" ||
+    event.action === "checkout_complete" ||
+    event.path === "/cart" ||
+    event.path === "/checkout" ||
+    event.path.startsWith("/cart/") ||
+    event.path.startsWith("/orders/")
+  );
+}
+
+function repeatRate(documents: ObservedEvent[]): number {
+  const seen = new Set<string>();
+  let repeats = 0;
+  for (const event of documents) {
+    const key = `${event.path}\0${event.query ?? ""}`;
+    if (seen.has(key)) repeats += 1;
+    else seen.add(key);
+  }
+  return documents.length === 0 ? 0 : repeats / documents.length;
+}
+
 function intentFor(event: ObservedEvent): Intent | null {
-  if (event.surface === "asset") return null;
+  if (event.surface === "asset" || event.action === "error") return null;
   if (event.path.startsWith("/t/")) return null;
   if (event.robots_or_sitemap) return "enumerate";
   if (event.action === "search" || event.action === "filter") return "retrieve";
@@ -157,40 +211,70 @@ function intentFor(event: ObservedEvent): Intent | null {
   ) {
     return "transact";
   }
-  if (event.action === "login" || event.action === "error") return null;
+  if (event.action === "login") return null;
   return "discover";
 }
 
 function separateActor(events: ObservedEvent[]): Pick<Classification, "actor" | "actor_confidence" | "signals"> {
-  const documents = events.filter((event) => event.surface === "page" || event.surface === "api");
+  const ordered = [...events].sort(byTime);
+  const documents = ordered.filter(isDocument);
   const apiCount = documents.filter((event) => event.surface === "api").length;
   const apiShare = documents.length === 0 ? 0 : apiCount / documents.length;
-  const assetsFetched = events.some((event) => event.surface === "asset");
-  const robotsOrSitemap = events.some((event) => event.robots_or_sitemap);
-  const medianGapMs = median(
-    events.map((event) => event.gap_ms).filter((gap): gap is number => gap != null),
-  );
-  const loginAfterForm = events.some((event) => event.action === "login");
-  const crawlerUa = events.some((event) => matchesUa(event.user_agent, CRAWLER_TOKENS));
-  const scriptClient = events.some((event) => matchesUa(event.user_agent, SCRIPT_TOKENS));
-  const distinctPaths = new Set(events.filter((event) => event.surface === "page").map((event) => event.path)).size;
+  const assetsFetched = ordered.some((event) => event.surface === "asset");
+  const robotsOrSitemap = ordered.some((event) => event.robots_or_sitemap);
+  const medianGapMs = median(ordered.map((event) => event.gap_ms).filter((gap): gap is number => gap != null));
+  const crawlerUa = ordered.some((event) => matchesUa(event.user_agent, CRAWLER_TOKENS));
+  const scriptClient = ordered.some((event) => matchesUa(event.user_agent, SCRIPT_TOKENS));
+  const errorRate = documents.length === 0 ? 0 : documents.filter(isErrored).length / documents.length;
+  const repeated = repeatRate(documents);
+  const emptyRetrievals = ordered.filter(isEmptyRetrieval).length;
+  const checkoutSteps = ordered.filter((event) => event.action === "checkout_step").length;
+  const validationLoop = checkoutSteps >= 2 && !ordered.some((event) => event.action === "checkout_complete");
+  const distinctPages = new Set(ordered.filter((event) => event.surface === "page").map((event) => event.path)).size;
+  const commerce = ordered.some(isCommerce);
+  const slowGap = medianGapMs != null && medianGapMs >= SLOW_GAP_MS;
 
+  // Behavior decides the actor. Script clients and missing stylesheets are context.
   let agentScore = 0;
-  if (apiShare >= 0.5) agentScore += 0.35;
-  else if (apiShare >= 0.25) agentScore += 0.15;
-  if (!assetsFetched && documents.length > 0) agentScore += 0.3;
-  if (robotsOrSitemap) agentScore += 0.15;
-  if (medianGapMs != null && medianGapMs < 400) agentScore += 0.2;
-  if (scriptClient) agentScore += 0.7;
+  if (apiShare >= 0.5) agentScore += 0.55;
+  else if (apiShare >= 0.25) agentScore += 0.22;
+  if (validationLoop) agentScore += 0.6;
+  if (emptyRetrievals >= 3) agentScore += 0.55;
+  else if (emptyRetrievals >= 2) agentScore += 0.2;
+  if (documents.length >= 3 && errorRate >= 0.35) agentScore += 0.55;
+  else if (documents.length >= 3 && errorRate >= 0.2) agentScore += 0.22;
+  if (documents.length >= 3 && repeated >= 0.5) agentScore += 0.55;
+  else if (documents.length >= 3 && repeated >= 0.34) agentScore += 0.22;
+  if (scriptClient) agentScore += 0.12;
+  if (!assetsFetched && documents.length > 0) agentScore += 0.12;
+  if (robotsOrSitemap) agentScore += 0.08;
+  if (medianGapMs != null && medianGapMs < FAST_GAP_MS && documents.length >= FAST_GAP_MIN_DOCS) agentScore += 0.08;
 
+  const careful =
+    documents.length > 0 &&
+    assetsFetched &&
+    apiShare < 0.15 &&
+    errorRate < 0.2 &&
+    repeated < 0.34 &&
+    emptyRetrievals < 2 &&
+    !validationLoop;
   let humanScore = 0;
-  if (assetsFetched) humanScore += 0.35;
-  if (apiShare < 0.15) humanScore += 0.25;
-  else if (apiShare < 0.35) humanScore += 0.1;
+  if (careful) {
+    humanScore += 0.5;
+    if (slowGap) humanScore += 0.2;
+  } else {
+    if (assetsFetched) humanScore += 0.12;
+    if (documents.length > 0 && apiShare < 0.15) humanScore += 0.08;
+    if (slowGap) humanScore += 0.08;
+  }
 
   let crawlerScore = 0;
   if (crawlerUa) crawlerScore += 0.95;
-  if (robotsOrSitemap && distinctPaths >= 8 && !loginAfterForm) crawlerScore += 0.5;
+  if (robotsOrSitemap && distinctPages >= CRAWLER_PAGE_MIN && !commerce) crawlerScore += 0.85;
+
+  agentScore = roundTo(agentScore, 2);
+  humanScore = roundTo(humanScore, 2);
+  crawlerScore = roundTo(crawlerScore, 2);
 
   const ranked: Array<[Actor, number]> = [
     ["agent", agentScore],
@@ -210,9 +294,12 @@ function separateActor(events: ObservedEvent[]): Pick<Classification, "actor" | 
       assets_fetched: assetsFetched,
       robots_or_sitemap: robotsOrSitemap,
       median_gap_ms: medianGapMs,
-      login_after_form: loginAfterForm,
       crawler_ua: crawlerUa,
       script_client: scriptClient,
+      error_rate: roundTo(errorRate, 4),
+      repeat_rate: roundTo(repeated, 4),
+      empty_retrievals: emptyRetrievals,
+      validation_loop: validationLoop,
       agent_score: agentScore,
       human_score: humanScore,
       crawler_score: crawlerScore,
@@ -221,7 +308,7 @@ function separateActor(events: ObservedEvent[]): Pick<Classification, "actor" | 
 }
 
 function buildPattern(events: ObservedEvent[]): AccessPattern {
-  const ordered = [...events].sort((a, b) => a.seq - b.seq || a.ts - b.ts);
+  const ordered = [...events].sort(byTime);
   const substantive = ordered.filter((event) => event.surface !== "asset");
   const first = ordered[0];
   const last = ordered[ordered.length - 1];
@@ -282,7 +369,7 @@ function buildPattern(events: ObservedEvent[]): AccessPattern {
 }
 
 function bucketIntent(events: ObservedEvent[]): Pick<Classification, "primary_intent" | "intent_path" | "intent_event_ids"> {
-  const ordered = [...events].sort((a, b) => a.seq - b.seq || a.ts - b.ts);
+  const ordered = [...events].sort(byTime);
   const intentEventIds: Partial<Record<Intent, string[]>> = {};
   const path: Intent[] = [];
   for (const event of ordered) {
@@ -294,16 +381,21 @@ function bucketIntent(events: ObservedEvent[]): Pick<Classification, "primary_in
     if (path[path.length - 1] !== intent) path.push(intent);
   }
 
-  const distinctPaths = new Set(
-    ordered.filter((event) => event.surface === "page" && !event.path.startsWith("/t/")).map((event) => event.path),
+  const distinctDocuments = new Set(
+    ordered.filter((event) => isDocument(event) && !event.path.startsWith("/t/")).map((event) => event.path),
   ).size;
-  const hasGoal = path.some((intent) => intent === "retrieve" || intent === "inspect" || intent === "transact");
-  if (distinctPaths >= 15 && !hasGoal && path[path.length - 1] !== "enumerate") {
-    path.push("enumerate");
-  }
+  const hasGoal = path.some((intent) => GOAL_INTENTS.has(intent));
+  const coverage = ordered.some((event) => event.robots_or_sitemap) || distinctDocuments >= ENUMERATE_PATH_MIN;
+  if (!hasGoal && distinctDocuments >= ENUMERATE_PATH_MIN && !path.includes("enumerate")) path.push("enumerate");
+
+  let primary: Intent;
+  if (path.length === 0) primary = "unknown_intent";
+  else if (hasGoal) primary = [...path].reverse().find((intent) => GOAL_INTENTS.has(intent)) as Intent;
+  else if (coverage) primary = "enumerate";
+  else primary = path[path.length - 1];
 
   return {
-    primary_intent: path.length === 0 ? "unknown_intent" : path[path.length - 1],
+    primary_intent: primary,
     intent_path: path.length === 0 ? ["unknown_intent"] : path,
     intent_event_ids: intentEventIds,
   };

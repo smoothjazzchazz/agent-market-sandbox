@@ -14,20 +14,22 @@ import {
   sellerPage,
 } from "./render";
 import {
-  buyers,
   cartFor,
   cartTotal,
   categories,
+  GUEST_WALLET_CENTS,
   listingById,
   listingsForSeller,
+  normalizeShip,
   orderById,
   orderItems,
-  ordersForUser,
+  ordersForSession,
+  placeGuestOrder,
   readFilters,
   searchListings,
+  sessionWallet,
+  shippingAcceptable,
   userById,
-  type CartRow,
-  type UserRow,
 } from "./shop-data";
 
 async function shell(c: { env: AppContext["Bindings"]; get: (key: "userId") => string | null }) {
@@ -54,8 +56,10 @@ export function registerShop(app: Hono<AppContext>): void {
       .first<{ id: string; status: string }>();
     if (!trial || trial.status !== "open") return c.text("Not found", 404);
     const sessionId = crypto.randomUUID();
-    await c.env.DB.prepare("INSERT INTO sessions (id, user_id, trial_id, created_at) VALUES (?, NULL, ?, ?)")
-      .bind(sessionId, trial.id, Date.now())
+    await c.env.DB.prepare(
+      "INSERT INTO sessions (id, user_id, trial_id, created_at, wallet_cents) VALUES (?, NULL, ?, ?, ?)",
+    )
+      .bind(sessionId, trial.id, Date.now(), GUEST_WALLET_CENTS)
       .run();
     setCookie(c, "sid", sessionId, { path: "/", httpOnly: true, sameSite: "Lax" });
     c.set("sessionId", sessionId);
@@ -176,20 +180,11 @@ export function registerShop(app: Hono<AppContext>): void {
 
   app.get("/account", async (c) => {
     const { tree, user } = await shell(c);
-    const choices = await buyers(c.env.DB);
-    const orders = user ? await ordersForUser(c.env.DB, user.id) : [];
+    const sessionId = c.get("sessionId");
+    const wallet = sessionId ? ((await sessionWallet(c.env.DB, sessionId)) ?? GUEST_WALLET_CENTS) : GUEST_WALLET_CENTS;
+    const orders = sessionId ? await ordersForSession(c.env.DB, sessionId) : [];
     c.set("obs", { action: "page_view" });
-    return c.html(accountPage(tree, user, choices, orders, new URL(c.req.url).searchParams.get("error") === "1"));
-  });
-
-  app.post("/login", async (c) => {
-    const body = await c.req.parseBody();
-    const user = await userById(c.env.DB, String(body.user_id ?? ""));
-    c.set("obs", { action: "login" });
-    if (!user || user.kind !== "buyer" || !c.get("sessionId")) return c.redirect("/account?error=1", 302);
-    await c.env.DB.prepare("UPDATE sessions SET user_id = ? WHERE id = ?").bind(user.id, c.get("sessionId")).run();
-    c.set("userId", user.id);
-    return c.redirect("/account", 302);
+    return c.html(accountPage(tree, user, wallet, orders));
   });
 
   app.get("/cart", async (c) => {
@@ -234,40 +229,37 @@ export function registerShop(app: Hono<AppContext>): void {
 
   app.get("/checkout", async (c) => {
     const { tree, user } = await shell(c);
-    const items = c.get("sessionId") ? await cartFor(c.env.DB, c.get("sessionId") as string) : [];
+    const sessionId = c.get("sessionId");
+    const items = sessionId ? await cartFor(c.env.DB, sessionId) : [];
+    const wallet = sessionId ? ((await sessionWallet(c.env.DB, sessionId)) ?? GUEST_WALLET_CENTS) : GUEST_WALLET_CENTS;
     c.set("obs", { action: "checkout_step", resultIds: items.map((item) => item.id), resultCount: items.length, empty: items.length === 0 });
-    return c.html(checkoutPage(tree, items, user, items.length === 0 ? "Your cart is empty." : null));
+    return c.html(checkoutPage(tree, items, user, wallet, items.length === 0 ? "Your cart is empty." : null));
   });
 
   app.post("/checkout", async (c) => {
     const { tree, user } = await shell(c);
     const sessionId = c.get("sessionId");
     const items = sessionId ? await cartFor(c.env.DB, sessionId) : [];
-    if (!user || !sessionId) {
-      c.set("obs", { action: "checkout_step" });
-      return c.redirect("/account", 302);
-    }
-    const body = await c.req.parseBody();
-    const ship = {
-      name: String(body.ship_name ?? "").trim(),
-      address: String(body.ship_address ?? "").trim(),
-      city: String(body.ship_city ?? "").trim(),
-      postal: String(body.ship_postal ?? "").trim(),
+    const wallet = sessionId ? ((await sessionWallet(c.env.DB, sessionId)) ?? GUEST_WALLET_CENTS) : GUEST_WALLET_CENTS;
+    const ship = normalizeShip(await c.req.parseBody());
+    const ids = items.map((item) => item.id);
+    const fail = (message: string, status: 400 | 200) => {
+      c.set("obs", { action: "checkout_step", resultIds: ids, resultCount: items.length, empty: items.length === 0 });
+      return c.html(checkoutPage(tree, items, user, wallet, message), status);
     };
+    if (!sessionId) return fail("Open the shop to start a guest session.", 400);
+    if (items.length === 0) return fail("Your cart is empty.", 400);
+    if (!shippingAcceptable(ship)) {
+      return fail("Enter a shipping name, address, city, and 5-digit postal code.", 400);
+    }
+    if (items.some((item) => item.qty > item.stock)) return fail("Not enough stock for this order.", 200);
     const total = cartTotal(items);
-    if (items.length === 0 || !ship.name || !ship.address || !ship.city || !ship.postal) {
-      c.set("obs", { action: "checkout_step", resultIds: items.map((item) => item.id) });
-      return c.html(checkoutPage(tree, items, user, "Enter a shipping name, address, city, and postal code."), 400);
-    }
-    if (items.some((item) => item.qty > item.stock) || total > user.wallet_cents) {
-      c.set("obs", { action: "checkout_step", resultIds: items.map((item) => item.id) });
-      return c.html(checkoutPage(tree, items, user, "Wallet balance is too low for this order."), 200);
-    }
-    const orderId = await placeOrder(c.env.DB, user, sessionId, items, ship, total);
+    if (total > wallet) return fail("Wallet balance is too low for this order.", 200);
+    const orderId = await placeGuestOrder(c.env.DB, sessionId, items, ship, total);
     c.set("obs", {
       action: "checkout_complete",
       orderId,
-      resultIds: items.map((item) => item.id),
+      resultIds: ids,
       resultCount: items.length,
       empty: false,
     });
@@ -277,7 +269,8 @@ export function registerShop(app: Hono<AppContext>): void {
   app.get("/orders/:id", async (c) => {
     const { tree, user } = await shell(c);
     const order = await orderById(c.env.DB, c.req.param("id"));
-    if (!order || !user || order.user_id !== user.id) return c.text("Not found", 404);
+    const sessionId = c.get("sessionId");
+    if (!order || !sessionId || order.session_id !== sessionId) return c.text("Not found", 404);
     const items = await orderItems(c.env.DB, order.id);
     c.set("obs", {
       action: "page_view",
@@ -315,34 +308,4 @@ function clampQty(value: unknown, stock: number): number {
   const parsed = Number(value ?? 1);
   if (!Number.isFinite(parsed)) return 1;
   return Math.max(1, Math.min(stock, Math.floor(parsed)));
-}
-
-async function placeOrder(
-  db: D1Database,
-  user: UserRow,
-  sessionId: string,
-  items: CartRow[],
-  ship: { name: string; address: string; city: string; postal: string },
-  total: number,
-): Promise<string> {
-  const orderId = crypto.randomUUID();
-  const now = Date.now();
-  await db.batch([
-    db.prepare("UPDATE users SET wallet_cents = wallet_cents - ? WHERE id = ? AND wallet_cents >= ?").bind(total, user.id, total),
-    ...items.map((item) =>
-      db.prepare("UPDATE listings SET stock = stock - ? WHERE id = ? AND stock >= ?").bind(item.qty, item.id, item.qty),
-    ),
-    db
-      .prepare(
-        "INSERT INTO orders (id, user_id, session_id, total_cents, ship_name, ship_address, ship_city, ship_postal, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      )
-      .bind(orderId, user.id, sessionId, total, ship.name, ship.address, ship.city, ship.postal, now),
-    ...items.map((item) =>
-      db
-        .prepare("INSERT INTO order_items (order_id, listing_id, title, price_cents, qty) VALUES (?, ?, ?, ?, ?)")
-        .bind(orderId, item.id, item.title, item.price_cents, item.qty),
-    ),
-    db.prepare("DELETE FROM carts WHERE session_id = ?").bind(sessionId),
-  ]);
-  return orderId;
 }

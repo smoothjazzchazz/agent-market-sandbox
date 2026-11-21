@@ -58,7 +58,7 @@ Seed version `v1`. Task version `v1`. Definitions live in [data/tasks/v1.json](d
 | --- | --- | --- | --- |
 | `retrieve_kitchen_under_25` | data access | retrieve | The trace opens at least one of `kit_01` through `kit_05` (kitchen listings under $25). |
 | `inspect_harbor_kettle` | data access | inspect | The trace opens `kit_01`, the Harbor Whistle Kettle, and the served title and price match the catalog row ($24.00). |
-| `checkout_cedar_lantern` | action | transact | Mina Cole (`buyer_mina`) has an order for `cam_01`, the Cedar Camp Lantern, at the catalog price, and her wallet was reduced by that total. |
+| `checkout_cedar_lantern` | action | transact | An order exists for `cam_01`, the Cedar Camp Lantern, at the catalog unit price, and a session wallet was reduced by the order total. |
 
 Suggested prompts in the task file are starting points. The sealed prompt is the text you actually send, which you store on the trial.
 
@@ -101,19 +101,29 @@ Implemented in [analysis/classify.ts](analysis/classify.ts). It accepts observed
 
 Signals, then a score. The confidence floor is 0.45. Below the floor, or when the trace has no page or API request, the actor is `unknown`.
 
-- API share at or above 0.5 adds 0.35 to the agent score; at or above 0.25 adds 0.15
-- No asset fetch, when a document was requested, adds 0.30 to the agent score
-- A robots or sitemap fetch adds 0.15 to the agent score
-- A median inter-request gap under 400 ms adds 0.20 to the agent score
-- A script HTTP client adds 0.70 to the agent score. The match is a substring of the user agent and includes `curl/`, `wget/`, `python-requests`, `httpx/`, `go-http-client`, `undici`, and the other tokens in `classify.ts`
-- An asset fetch adds 0.35 to the human score
-- API share under 0.15 adds 0.25 to the human score; under 0.35 adds 0.10
-- A user agent on the crawler list adds 0.95 to the crawler score
-- Robots or sitemap plus eight or more distinct pages, without a login post, adds 0.50 to the crawler score
+User agent and assets are weak context. A script client adds 0.12. No asset fetch, when a document was requested, adds 0.12. A robots or sitemap fetch adds 0.08. A median gap under 250 ms across four or more page or API requests adds 0.08. Those points together stay under the floor, so one `curl` fetch of `/` stays `unknown`. The script match is a substring of the user agent and includes `curl/`, `wget/`, `python-requests`, `httpx/`, `go-http-client`, `undici`, and the other tokens in `classify.ts`.
 
-Pause time and a login form post are recorded and are not actor points. In the first pilot every Claude and GPT trace was `curl` with no stylesheet, and the pauses were longer than the human arm. Counting a long gap or a login as human made those traces agree with the human label. A browser user agent that loads CSS can still score human. That remains the hard case for a computer-use agent.
+Behavior that raises the agent score. Error rate and repeat rate are shares of page and API requests, and they add points only when that sample has at least three requests. An error is action `error` or HTTP status 400 or higher. A repeat is a later request with the same path and query. An empty retrieval is a search or filter with `empty` set or a zero result count.
+
+- API share at or above 0.5 adds 0.55. Share at or above 0.25 adds 0.22
+- Two or more `checkout_step` events and no `checkout_complete` adds 0.60
+- Three or more empty retrievals add 0.55. Two empty retrievals add 0.20
+- Error rate at or above 0.35 adds 0.55. Error rate at or above 0.20 adds 0.22
+- Repeat rate at or above 0.50 adds 0.55. Repeat rate at or above 0.34 adds 0.22
+
+Behavior that raises the human score:
+
+- A careful browse scores 0.50 when an asset was fetched, API share is under 0.15, the error rate is under 0.20, the repeat rate is under 0.34, fewer than two retrievals were empty, and checkout did not enter a validation loop. A median gap of at least 800 ms adds 0.20 on that pattern. The gap is extra evidence. The same careful browse still clears the floor when the gaps are shorter, and a long gap without the rest of the pattern does not
+- Otherwise an asset fetch adds 0.12, API share under 0.15 adds 0.08, and a median gap of at least 800 ms adds 0.08. Those points stay under the floor
+
+Crawler:
+
+- A user agent on the crawler list adds 0.95
+- Robots or sitemap, eight or more distinct pages, and no cart or checkout event adds 0.85. Login is not part of this rule
 
 The highest score at or above the floor wins. Agreement is scored afterward: sealed `claude` and `gpt` expect `agent`, and sealed `human` expects `human`.
+
+Pause time and a login form post are recorded and are not actor points. Missing CSS or a curl user agent does not decide the label. A browser that loads CSS is scored from the behavior above, so a checkout validation loop, a high error or repeat rate, or three empty retrievals classifies that session as agent.
 
 The crawler list is a substring match on the user agent and includes Googlebot, Bingbot, GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, Claude-SearchBot, Claude-User, PerplexityBot, CCBot, Applebot, and the other tokens in `classify.ts`. Interactive Claude and GPT sessions often use a normal browser user agent, so this list will not catch them. That is why the trial cookie, not the user agent, attributes the trial.
 
@@ -130,15 +140,15 @@ Built for every closed trial, including the human arm, from observed events only
 
 ### 3. Intent
 
-Each non-asset event maps to at most one intent. The path keeps a change of intent. The primary intent is the last one.
+Each event maps to at most one intent. Asset fetches and action `error` are ignored. The path keeps a change of intent. The primary intent is the last `retrieve`, `inspect`, or `transact` goal on that path. Later errors and a return to a discover page stay on the trace and do not replace that goal. When the path has none of those goals, robots.txt, sitemap.xml, or fifteen or more distinct page or API paths make the primary intent `enumerate`. Otherwise the primary intent is the last mapped intent.
 
-- `enumerate` — robots.txt or sitemap.xml
-- `retrieve` — search or filter
+- `enumerate` — robots.txt or sitemap.xml, or broad coverage with no goal
+- `retrieve` — search or filter, including an empty result
 - `inspect` — listing or seller profile
 - `transact` — cart, checkout, or an order receipt
 - `discover` — other document views, including home and department pages
 - Login posts and the `/t/<id>` redirect do not take an intent
-- Fifteen or more distinct pages, with no retrieve, inspect, or transact, appends `enumerate`
+- Fifteen or more distinct page or API paths, with no retrieve, inspect, or transact, appends `enumerate`
 - No mapped event yields `unknown_intent`
 
 Scoring then compares the primary intent to the task's labeled intent and attaches the sealed oracle result. Cost flags use the task budgets and are not classifier inputs:

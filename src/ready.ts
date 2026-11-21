@@ -4,14 +4,21 @@ import { SCHEMA } from "./schema";
 
 let ready: Promise<void> | null = null;
 
-export function ensureReady(env: Env): Promise<void> {
-  if (!ready) {
-    ready = init(env).catch((error) => {
-      ready = null;
-      throw error;
-    });
-  }
+function startInit(env: Env): Promise<void> {
+  ready = init(env).catch((error) => {
+    ready = null;
+    throw error;
+  });
   return ready;
+}
+
+export async function ensureReady(env: Env): Promise<void> {
+  if (!ready) await startInit(env);
+  else await ready;
+  const sessions = await env.DB.prepare(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'sessions'",
+  ).first<{ name: string }>();
+  if (!sessions) await startInit(env);
 }
 
 async function applySchema(env: Env): Promise<void> {
@@ -21,8 +28,15 @@ async function applySchema(env: Env): Promise<void> {
   }
 }
 
+async function ensureGuestWallet(db: D1Database): Promise<void> {
+  const info = await db.prepare("PRAGMA table_info(sessions)").all<{ name: string }>();
+  if (info.results.some((column) => column.name === "wallet_cents")) return;
+  await db.prepare("ALTER TABLE sessions ADD COLUMN wallet_cents INTEGER NOT NULL DEFAULT 8000").run();
+}
+
 async function init(env: Env): Promise<void> {
   await applySchema(env);
+  await ensureGuestWallet(env.DB);
   const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM listings").first<{ n: number }>();
   if (!row || row.n === 0) await seedCatalog(env.DB);
 }

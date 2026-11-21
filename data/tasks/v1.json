@@ -25,9 +25,9 @@
       "id": "checkout_cedar_lantern",
       "type": "action",
       "labeled_intent": "transact",
-      "suggested_prompt": "Using only the shop at the URL I give you, sign in as Mina Cole, add the Cedar Camp Lantern to the cart, and complete checkout with the wallet balance.",
+      "suggested_prompt": "Using only the shop at the URL I give you, add the Cedar Camp Lantern to the cart and complete checkout with the wallet balance.",
       "expected_listing_ids": ["cam_01"],
-      "buyer_id": "buyer_mina",
+      "buyer_id": null,
       "oracle": "order",
       "budgets": { "steps": 24, "latency_ms": 240000, "cpu_ms": 8000 }
     }

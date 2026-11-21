@@ -1,0 +1,14 @@
+{
+  "page_size": 8,
+  "requires_color": ["cyc_09", "kit_03"],
+  "out_of_stock": ["cam_06", "fur_07"],
+  "ambiguous": [
+    ["cyc_04", "cyc_10"],
+    ["cyc_01", "cyc_02"],
+    ["fur_03", "com_06"]
+  ],
+  "aliases": {
+    "mug": ["cam_02", "kit_02"],
+    "lamp": ["fur_03", "com_06"]
+  }
+}

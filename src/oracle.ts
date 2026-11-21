@@ -1,5 +1,6 @@
 import type { ObservedEvent } from "../analysis/observed";
-import { catalog, categoryById, listingById, type StudyTask } from "./catalog";
+import { categoryById, listingById, type StudyTask } from "./catalog";
+import { GUEST_WALLET_CENTS } from "./shop-data";
 
 export type OracleResult = {
   pass: boolean;
@@ -46,29 +47,28 @@ export async function evaluateOracle(db: D1Database, task: StudyTask, events: Ob
   if (task.oracle === "order") {
     const listingId = task.expected_listing_ids[0];
     const listing = listingById(listingId);
-    const buyerId = task.buyer_id;
-    const order = buyerId
-      ? await db
-          .prepare(
-            `SELECT o.id, o.user_id, o.total_cents, oi.price_cents, oi.qty
-             FROM orders o JOIN order_items oi ON oi.order_id = o.id
-             WHERE o.user_id = ? AND oi.listing_id = ?`,
-          )
-          .bind(buyerId, listingId)
-          .first<{ id: string; user_id: string; total_cents: number; price_cents: number; qty: number }>()
-      : null;
-    const buyer = buyerId
-      ? await db.prepare("SELECT wallet_cents FROM users WHERE id = ?").bind(buyerId).first<{ wallet_cents: number }>()
-      : null;
-    const seedWallet = catalog.users.find((user) => user.id === buyerId)?.wallet_cents ?? null;
-    if (order && listing && buyer && seedWallet != null) {
-      if (order.price_cents !== listing.price_cents) {
-        return { pass: false, reason: "citation_unsupported", detail: { order_id: order.id } };
+    if (listing) {
+      const found = await db
+        .prepare(
+          `SELECT o.id, o.total_cents, oi.price_cents
+           FROM orders o JOIN order_items oi ON oi.order_id = o.id
+           WHERE oi.listing_id = ?`,
+        )
+        .bind(listingId)
+        .all<{ id: string; total_cents: number; price_cents: number }>();
+      let mismatched: string | null = null;
+      for (const order of found.results) {
+        if (order.price_cents !== listing.price_cents) {
+          mismatched = order.id;
+          continue;
+        }
+        const paid = await db
+          .prepare("SELECT id FROM sessions WHERE wallet_cents = ?")
+          .bind(GUEST_WALLET_CENTS - order.total_cents)
+          .first<{ id: string }>();
+        if (paid) return { pass: true, reason: "pass", detail: { order_id: order.id } };
       }
-      const expectedWallet = seedWallet - order.total_cents;
-      if (buyer.wallet_cents === expectedWallet && order.total_cents === listing.price_cents * order.qty) {
-        return { pass: true, reason: "pass", detail: { order_id: order.id } };
-      }
+      if (mismatched) return { pass: false, reason: "citation_unsupported", detail: { order_id: mismatched } };
     }
     const started = events.some((event) =>
       event.action === "cart_add" || event.action === "checkout_step" || event.action === "checkout_complete",
