@@ -65,6 +65,7 @@ export type Classification = {
     median_gap_ms: number | null;
     login_after_form: boolean;
     crawler_ua: boolean;
+    script_client: boolean;
     agent_score: number;
     human_score: number;
     crawler_score: number;
@@ -76,6 +77,22 @@ export type Classification = {
 };
 
 const ACTOR_FLOOR = 0.45;
+
+const SCRIPT_TOKENS = [
+  "curl/",
+  "wget/",
+  "python-requests",
+  "python-urllib",
+  "httpx/",
+  "go-http-client",
+  "node-fetch",
+  "undici",
+  "aiohttp",
+  "libwww-perl",
+  "okhttp",
+  "scrapy",
+  "axios/",
+];
 
 const CRAWLER_TOKENS = [
   "googlebot",
@@ -118,10 +135,10 @@ function depthOf(path: string): number {
   return path.split("/").filter(Boolean).length;
 }
 
-function isCrawlerUa(userAgent: string | null): boolean {
+function matchesUa(userAgent: string | null, tokens: string[]): boolean {
   if (!userAgent) return false;
   const haystack = userAgent.toLowerCase();
-  return CRAWLER_TOKENS.some((token) => haystack.includes(token));
+  return tokens.some((token) => haystack.includes(token));
 }
 
 function intentFor(event: ObservedEvent): Intent | null {
@@ -154,7 +171,8 @@ function separateActor(events: ObservedEvent[]): Pick<Classification, "actor" | 
     events.map((event) => event.gap_ms).filter((gap): gap is number => gap != null),
   );
   const loginAfterForm = events.some((event) => event.action === "login");
-  const crawlerUa = events.some((event) => isCrawlerUa(event.user_agent));
+  const crawlerUa = events.some((event) => matchesUa(event.user_agent, CRAWLER_TOKENS));
+  const scriptClient = events.some((event) => matchesUa(event.user_agent, SCRIPT_TOKENS));
   const distinctPaths = new Set(events.filter((event) => event.surface === "page").map((event) => event.path)).size;
 
   let agentScore = 0;
@@ -163,13 +181,12 @@ function separateActor(events: ObservedEvent[]): Pick<Classification, "actor" | 
   if (!assetsFetched && documents.length > 0) agentScore += 0.3;
   if (robotsOrSitemap) agentScore += 0.15;
   if (medianGapMs != null && medianGapMs < 400) agentScore += 0.2;
+  if (scriptClient) agentScore += 0.7;
 
   let humanScore = 0;
   if (assetsFetched) humanScore += 0.35;
   if (apiShare < 0.15) humanScore += 0.25;
   else if (apiShare < 0.35) humanScore += 0.1;
-  if (medianGapMs != null && medianGapMs >= 800) humanScore += 0.25;
-  if (loginAfterForm) humanScore += 0.15;
 
   let crawlerScore = 0;
   if (crawlerUa) crawlerScore += 0.95;
@@ -195,6 +212,7 @@ function separateActor(events: ObservedEvent[]): Pick<Classification, "actor" | 
       median_gap_ms: medianGapMs,
       login_after_form: loginAfterForm,
       crawler_ua: crawlerUa,
+      script_client: scriptClient,
       agent_score: agentScore,
       human_score: humanScore,
       crawler_score: crawlerScore,

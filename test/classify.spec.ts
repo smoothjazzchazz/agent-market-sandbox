@@ -80,6 +80,30 @@ describe("classifier", () => {
     expect(crawler.primary_intent).toBe("enumerate");
   });
 
+  it("labels a script client that never loads assets as agent even when it pauses and signs in", () => {
+    const prediction = classify([
+      event({ id: "1", path: "/", surface: "page", action: "page_view", seq: 1, ts: 1_000, user_agent: "curl/8.21.0" }),
+      event({ id: "2", path: "/account", surface: "page", action: "page_view", seq: 2, ts: 8_000, gap_ms: 7_000, user_agent: "curl/8.21.0" }),
+      event({ id: "3", path: "/login", surface: "page", action: "login", seq: 3, ts: 15_000, gap_ms: 7_000, user_agent: "curl/8.21.0" }),
+      event({
+        id: "4",
+        path: "/listing/cam_01",
+        surface: "page",
+        action: "listing_open",
+        seq: 4,
+        ts: 22_000,
+        gap_ms: 7_000,
+        user_agent: "curl/8.21.0",
+        listing_id: "cam_01",
+        served_title: "Cedar Camp Lantern",
+        served_price_cents: 4200,
+      }),
+    ]);
+    expect(prediction.actor).toBe("agent");
+    expect(prediction.signals.script_client).toBe(true);
+    expect(prediction.signals.assets_fetched).toBe(false);
+  });
+
   it("leaves a thin session unknown", () => {
     const prediction = classify([
       event({ id: "1", path: "/", surface: "page", action: "page_view", gap_ms: 500 }),

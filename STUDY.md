@@ -105,14 +105,15 @@ Signals, then a score. The confidence floor is 0.45. Below the floor, or when th
 - No asset fetch, when a document was requested, adds 0.30 to the agent score
 - A robots or sitemap fetch adds 0.15 to the agent score
 - A median inter-request gap under 400 ms adds 0.20 to the agent score
+- A script HTTP client adds 0.70 to the agent score. The match is a substring of the user agent and includes `curl/`, `wget/`, `python-requests`, `httpx/`, `go-http-client`, `undici`, and the other tokens in `classify.ts`
 - An asset fetch adds 0.35 to the human score
 - API share under 0.15 adds 0.25 to the human score; under 0.35 adds 0.10
-- A median gap of at least 800 ms adds 0.25 to the human score
-- A login form post adds 0.15 to the human score
 - A user agent on the crawler list adds 0.95 to the crawler score
 - Robots or sitemap plus eight or more distinct pages, without a login post, adds 0.50 to the crawler score
 
-The highest score at or above the floor wins. Computer-use agents that load CSS, pause, and sign in through the form are expected to look human. Agreement is scored afterward: sealed `claude` and `gpt` expect `agent`, and sealed `human` expects `human`.
+Pause time and a login form post are recorded and are not actor points. In the first pilot every Claude and GPT trace was `curl` with no stylesheet, and the pauses were longer than the human arm. Counting a long gap or a login as human made those traces agree with the human label. A browser user agent that loads CSS can still score human. That remains the hard case for a computer-use agent.
+
+The highest score at or above the floor wins. Agreement is scored afterward: sealed `claude` and `gpt` expect `agent`, and sealed `human` expects `human`.
 
 The crawler list is a substring match on the user agent and includes Googlebot, Bingbot, GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, Claude-SearchBot, Claude-User, PerplexityBot, CCBot, Applebot, and the other tokens in `classify.ts`. Interactive Claude and GPT sessions often use a normal browser user agent, so this list will not catch them. That is why the trial cookie, not the user agent, attributes the trial.
 
