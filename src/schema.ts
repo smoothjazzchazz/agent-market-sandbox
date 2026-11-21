@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
   user_id TEXT,
   trial_id TEXT,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  wallet_cents INTEGER NOT NULL DEFAULT 8000
 );
 
 CREATE TABLE IF NOT EXISTS carts (

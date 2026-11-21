@@ -55,9 +55,7 @@ export function layout(options: {
   body: string;
   jsonLd?: unknown;
 }): string {
-  const account = options.user
-    ? `<a href="/account">${esc(options.user.name)}</a>`
-    : `<a href="/account">Sign in</a>`;
+  const account = `<a href="/account">Account</a>`;
   const jsonLd = options.jsonLd
     ? `<script type="application/ld+json">${JSON.stringify(options.jsonLd).replaceAll("<", "\\u003c")}</script>`
     : "";
@@ -218,26 +216,9 @@ export function sellerPage(
 export function accountPage(
   categories: CategoryRow[],
   user: UserRow | null,
-  buyerChoices: UserRow[],
+  walletCents: number,
   orders: OrderRow[],
-  error: boolean,
 ): string {
-  if (!user) {
-    const options = buyerChoices
-      .map((buyer) => `<option value="${esc(buyer.id)}">${esc(buyer.name)}</option>`)
-      .join("");
-    return layout({
-      title: "Sign in",
-      categories,
-      user: null,
-      body: `<h1>Sign in</h1>
-        ${error ? `<p class="warn">Choose an account from the list.</p>` : ""}
-        <form method="post" action="/login">
-          <label>Account <select name="user_id">${options}</select></label>
-          <button type="submit">Continue</button>
-        </form>`,
-    });
-  }
   const history =
     orders.length === 0
       ? `<p>No orders yet.</p>`
@@ -251,7 +232,7 @@ export function accountPage(
     title: "Account",
     categories,
     user,
-    body: `<h1>${esc(user.name)}</h1><p>${esc(user.bio)}</p><p>Wallet balance ${money(user.wallet_cents)}</p><h2>Orders</h2>${history}`,
+    body: `<h1>Account</h1><p>Guest wallet balance ${money(walletCents)}. Checkout pays from this balance.</p><h2>Orders</h2>${history}`,
   });
 }
 
@@ -277,16 +258,9 @@ export function checkoutPage(
   categories: CategoryRow[],
   items: CartRow[],
   user: UserRow | null,
+  walletCents: number,
   message: string | null,
 ): string {
-  if (!user) {
-    return layout({
-      title: "Checkout",
-      categories,
-      user,
-      body: `<h1>Checkout</h1><p><a href="/account">Sign in</a> to pay with a wallet balance.</p>`,
-    });
-  }
   const lines = items
     .map((item) => `<li>${esc(item.title)} · ${item.qty} × ${money(item.price_cents)}</li>`)
     .join("");
@@ -299,12 +273,12 @@ export function checkoutPage(
       ${message ? `<p class="warn">${esc(message)}</p>` : ""}
       <ul>${lines}</ul>
       <p class="price">Total ${money(total)}</p>
-      <p>Wallet balance ${money(user.wallet_cents)}. Payment uses that balance. No card is charged.</p>
+      <p>Wallet balance ${money(walletCents)}. Payment uses that balance. No card is charged.</p>
       <form method="post" action="/checkout">
-        <label>Name <input name="ship_name" required value="${esc(user.name)}"></label>
+        <label>Name <input name="ship_name" required></label>
         <label>Address <input name="ship_address" required></label>
         <label>City <input name="ship_city" required></label>
-        <label>Postal code <input name="ship_postal" required></label>
+        <label>Postal code <input name="ship_postal" required pattern="[0-9]{5}" inputmode="numeric" maxlength="5"></label>
         <button type="submit">Pay with wallet balance</button>
       </form>`,
   });
